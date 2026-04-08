@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 import base64
 import io
+import random
 import threading
 import time
 import tempfile
@@ -12,14 +13,15 @@ import pystray
 
 from assets import (
     IDLE_PNG, RUNNING_GIF, TIMES_UP_PNG,
-    ANIMATION_GIF, ALERT_WAV, TRAY_ICON_PNG,
+    ANIMATION_GIF, ALERT_WAV, ALERT2_WAV, ALERT3_WAV, ALERT4_WAV,
+    TRAY_ICON_PNG,
 )
 
 
 class BreakTimer:
     def __init__(self):
         self.root = tk.Tk()
-        self.root.title("Break Timer")
+        self.root.title("Neco-Arc Timer")
         self.root.resizable(False, False)
 
         self.CANVAS_W = 500
@@ -83,11 +85,14 @@ class BreakTimer:
             self.gif_frames.append(ImageTk.PhotoImage(frame))
             self.gif_frames_flipped.append(ImageTk.PhotoImage(frame.transpose(Image.FLIP_LEFT_RIGHT)))
 
-        # Write alert.wav to a temp file (winsound needs a file path)
-        self._alert_wav = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
-        self._alert_wav.write(base64.b64decode(ALERT_WAV))
-        self._alert_wav.close()
-        self._alert_path = self._alert_wav.name
+        # Write all alert wavs to temp files (winsound needs a file path)
+        self._alert_paths = []
+        for alert_data in (ALERT_WAV, ALERT2_WAV, ALERT3_WAV, ALERT4_WAV):
+            tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+            tmp.write(base64.b64decode(alert_data))
+            tmp.close()
+            self._alert_paths.append(tmp.name)
+        self._alert_path = self._alert_paths[0]
 
     def _build_ui(self):
         # Main canvas — used for all states
@@ -178,7 +183,7 @@ class BreakTimer:
             pystray.MenuItem("Show", self._restore_from_tray, default=True),
             pystray.MenuItem("Quit", self._quit),
         )
-        self.tray_icon = pystray.Icon("break_timer", icon_image, "Break Timer", menu)
+        self.tray_icon = pystray.Icon("neco_arc_timer", icon_image, "Neco-Arc Timer", menu)
         threading.Thread(target=self.tray_icon.run, daemon=True).start()
 
     def _on_minimize(self, event):
@@ -220,6 +225,7 @@ class BreakTimer:
             self.status_label.config(text="Enter a valid number", foreground="red")
             return
         self.remaining = minutes * 60
+        self._alert_path = random.choice(self._alert_paths)
         self.running = True
         self._show_running()
         self.start_btn.config(state="disabled")
@@ -232,6 +238,8 @@ class BreakTimer:
         self.start_btn.config(state="normal")
         self.stop_btn.config(state="disabled")
         self.status_label.config(text="Stopped", foreground="gray")
+        if self.tray_icon:
+            self.tray_icon.title = "Neco-Arc Timer"
         self._show_idle()
 
     def _tick(self):
@@ -245,12 +253,17 @@ class BreakTimer:
             self.root.after(0, self._times_up)
 
     def _update_display(self):
-        self.status_label.config(text=self._format_time(self.remaining))
+        time_str = self._format_time(self.remaining)
+        self.status_label.config(text=time_str)
+        if self.tray_icon:
+            self.tray_icon.title = time_str
 
     def _times_up(self):
         self.start_btn.config(state="normal")
         self.stop_btn.config(state="disabled")
         self.status_label.config(text="Time for a break!", foreground="red")
+        if self.tray_icon:
+            self.tray_icon.title = "Neco-Arc Timer - Time's up!"
 
         self._show_times_up()
 

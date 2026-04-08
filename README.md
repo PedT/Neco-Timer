@@ -23,10 +23,13 @@ pip install Pillow pystray
 
 ## Project Structure
 
-| File              | Description                                           |
-|-------------------|-------------------------------------------------------|
-| `neco_timer.py`   | Main application script                               |
-| `assets.py`       | All images and audio embedded as base64 constants     |
+| File               | Description                                           |
+|--------------------|-------------------------------------------------------|
+| `neco_timer.py`    | Main application script and timer orchestration       |
+| `core/ui.py`       | Canvas, widgets, and visual state transitions         |
+| `core/tray.py`     | System tray icon and minimize-to-tray behavior        |
+| `core/media.py`    | Asset loading (images, GIFs, sounds) and animation    |
+| `core/assets.py`   | All images and audio embedded as base64 constants     |
 
 ## Usage
 
